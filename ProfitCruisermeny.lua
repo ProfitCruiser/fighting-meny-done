@@ -58,13 +58,40 @@ local function corner(o,r) local c=Instance.new("UICorner"); c.CornerRadius=UDim
 local function stroke(o,col,th,tr) local s=Instance.new("UIStroke"); s.Color=col; s.Thickness=th or 1; s.Transparency=tr or 0; s.ApplyStrokeMode=Enum.ApplyStrokeMode.Border; s.Parent=o end
 local function pad(o,p) local x=Instance.new("UIPadding"); x.PaddingTop=UDim.new(0,p); x.PaddingBottom=UDim.new(0,p); x.PaddingLeft=UDim.new(0,p); x.PaddingRight=UDim.new(0,p); x.Parent=o end
 local function trim(s) s=tostring(s or ""):gsub("\r",""):gsub("\n",""):gsub("%s+$",""):gsub("^%s+",""); return s end
+local interactCache = setmetatable({}, { __mode = "k" })
+
+local function captureInteractable(instance)
+    local cached = interactCache[instance]
+    if cached then
+        return cached
+    end
+
+    cached = {}
+    if instance:IsA("TextLabel") or instance:IsA("TextButton") then
+        cached.TextTransparency = instance.TextTransparency
+        if instance:IsA("TextButton") then
+            cached.AutoButtonColor = instance.AutoButtonColor
+        end
+    elseif instance:IsA("Frame") then
+        cached.BackgroundColor3 = instance.BackgroundColor3
+    end
+
+    interactCache[instance] = cached
+    return cached
+end
+
 local function setInteractable(frame, on)
     for _,v in ipairs(frame:GetDescendants()) do
+        local cached = captureInteractable(v)
         if v:IsA("TextLabel") or v:IsA("TextButton") then
-            v.TextTransparency = on and 0 or 0.45
-            if v:IsA("TextButton") then v.AutoButtonColor = on end
+            local base = cached.TextTransparency or 0
+            v.TextTransparency = on and base or math.clamp(base + 0.45, 0, 1)
+            if v:IsA("TextButton") then
+                v.AutoButtonColor = on and (cached.AutoButtonColor ~= nil and cached.AutoButtonColor or true) or false
+            end
         elseif v:IsA("Frame") then
-            v.BackgroundColor3 = on and v.BackgroundColor3 or T.Ink
+            local baseColor = cached.BackgroundColor3 or v.BackgroundColor3
+            v.BackgroundColor3 = on and baseColor or T.Ink
         end
     end
     frame.Active = on
