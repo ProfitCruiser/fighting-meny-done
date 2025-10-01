@@ -34,18 +34,19 @@ local DISCORD_URL   = "https://discord.gg/Pgn4NMWDH8"
 
 --// Theme
 local T = {
-    BG      = Color3.fromRGB(10, 9, 18),
-    Panel   = Color3.fromRGB(18, 16, 31),
-    Card    = Color3.fromRGB(24, 21, 40),
-    Ink     = Color3.fromRGB(34, 30, 52),
-    Stroke  = Color3.fromRGB(82, 74, 120),
-    Neon    = Color3.fromRGB(160, 105, 255),
-    Accent  = Color3.fromRGB(116, 92, 220),
-    Text    = Color3.fromRGB(240, 240, 252),
-    Subtle  = Color3.fromRGB(188, 182, 210),
-    Good    = Color3.fromRGB(80, 210, 140),
-    Warn    = Color3.fromRGB(255, 183, 77),
-    Off     = Color3.fromRGB(100, 94, 130),
+    BG      = Color3.fromRGB(12, 11, 20),
+    Panel   = Color3.fromRGB(22, 20, 36),
+    Card    = Color3.fromRGB(30, 27, 48),
+    Surface = Color3.fromRGB(38, 33, 58),
+    Ink     = Color3.fromRGB(48, 42, 72),
+    Stroke  = Color3.fromRGB(96, 88, 142),
+    Neon    = Color3.fromRGB(168, 110, 255),
+    Accent  = Color3.fromRGB(122, 98, 230),
+    Text    = Color3.fromRGB(244, 242, 255),
+    Subtle  = Color3.fromRGB(202, 196, 224),
+    Good    = Color3.fromRGB(86, 214, 150),
+    Warn    = Color3.fromRGB(255, 188, 96),
+    Off     = Color3.fromRGB(122, 116, 156),
 }
 
 local function safeParent()
@@ -323,9 +324,21 @@ App.DisplayOrder=50; App.Parent=safeParent()
 
 Root = Instance.new("Frame", App)
 Root.Size=UDim2.fromOffset(980, 600); Root.AnchorPoint=Vector2.new(0.5,0.5); Root.Position=UDim2.fromScale(0.5,0.5)
-Root.BackgroundColor3=T.Card; corner(Root,16); stroke(Root,T.Stroke,1,0.45); pad(Root,12)
+Root.BackgroundColor3=T.Panel; Root.BackgroundTransparency = 0.02; corner(Root,16); stroke(Root,T.Stroke,1,0.38); pad(Root,12)
 Root.Visible=false
 Root.Active = true
+
+local rootGradient = Instance.new("UIGradient", Root)
+rootGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(60, 50, 90)),
+    ColorSequenceKeypoint.new(0.55, Color3.fromRGB(36, 30, 58)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 18, 32))
+})
+rootGradient.Rotation = 32
+rootGradient.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.12),
+    NumberSequenceKeypoint.new(1, 0.24)
+})
 
 local PanelScale = Instance.new("UIScale", Root)
 PanelScale.Scale = 1
@@ -751,7 +764,18 @@ updateDockState()
 -- sidebar
 local Side = Instance.new("Frame", Root)
 Side.Size=UDim2.new(0, 210, 1, -70); Side.Position=UDim2.new(0,8,0,62)
-Side.BackgroundColor3=T.Panel; corner(Side,12); stroke(Side,T.Stroke,1,0.45); pad(Side,8)
+Side.BackgroundColor3=T.Surface; Side.BackgroundTransparency = 0.04; corner(Side,12); stroke(Side,T.Stroke,1,0.32); pad(Side,8)
+
+local sideGradient = Instance.new("UIGradient", Side)
+sideGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(70, 60, 110)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(34, 30, 56))
+})
+sideGradient.Rotation = 90
+sideGradient.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.45),
+    NumberSequenceKeypoint.new(1, 0.65)
+})
 -- ensure tab buttons stack vertically (fix: only Aimbot showing)
 local SideList = Instance.new("UIListLayout", Side)
 SideList.SortOrder = Enum.SortOrder.LayoutOrder
@@ -815,9 +839,10 @@ end
 local function tabButton(text, page)
     local b=Instance.new("TextButton", Side)
     b.Size=UDim2.new(1,0,0,40); b.Text=text; b.Font=Enum.Font.Gotham; b.TextSize=15; b.TextColor3=T.Text
-    b.BackgroundColor3=T.Ink; b.AutoButtonColor=false; corner(b,10); stroke(b,T.Stroke,1,0.35)
-    local bar=Instance.new("Frame", b); bar.Size=UDim2.new(0,0,1,0); bar.Position=UDim2.new(0,0,0,0); bar.BackgroundColor3=T.Neon; corner(bar,10)
-    b.MouseButton1Click:Connect(function()
+    b.BackgroundColor3=T.Surface; b.AutoButtonColor=false; corner(b,11); stroke(b,T.Stroke,1,0.28)
+    local bar=Instance.new("Frame", b); bar.Size=UDim2.new(0,0,1,0); bar.Position=UDim2.new(0,0,0,0); bar.BackgroundColor3=T.Neon; corner(bar,11)
+
+    local function activate()
         for _,c in ipairs(Content:GetChildren()) do
             if c:IsA("GuiObject") then
                 c.Visible = false
@@ -825,16 +850,19 @@ local function tabButton(text, page)
         end
         for _,x in ipairs(Side:GetChildren()) do
             if x:IsA("TextButton") then
-                TweenService:Create(x,TweenInfo.new(0.12),{BackgroundColor3=T.Ink}):Play()
-                local f=x:FindFirstChildOfClass("Frame"); if f then TweenService:Create(f,TweenInfo.new(0.12),{Size=UDim2.new(0,0,1,0)}):Play() end
+                TweenService:Create(x,TweenInfo.new(0.14),{BackgroundColor3=T.Surface}):Play()
+                local f=x:FindFirstChildOfClass("Frame"); if f then TweenService:Create(f,TweenInfo.new(0.14),{Size=UDim2.new(0,0,1,0)}):Play() end
             end
         end
         page.Visible=true
         if page:IsA("ScrollingFrame") then page.CanvasPosition = Vector2.new(0,0) end
-        TweenService:Create(b,TweenInfo.new(0.12),{BackgroundColor3=T.Accent}):Play()
-        TweenService:Create(bar,TweenInfo.new(0.12),{Size=UDim2.new(0,4,1,0)}):Play()
-    end)
-    return b
+        TweenService:Create(b,TweenInfo.new(0.14),{BackgroundColor3=T.Accent}):Play()
+        TweenService:Create(bar,TweenInfo.new(0.14),{Size=UDim2.new(0,4,1,0)}):Play()
+    end
+
+    b.MouseButton1Click:Connect(activate)
+
+    return b, activate
 end
 
 -- floating tooltip bubble for control descriptions
@@ -936,10 +964,23 @@ local function rowBase(parent, name, desc)
     local infoText = trim(desc or "")
     local hasDesc = infoText ~= ""
     local r = Instance.new("Frame", parent)
-    r.BackgroundColor3 = T.Card
+    r.BackgroundColor3 = T.Surface
+    r.BackgroundTransparency = 0.08
     r.Size = UDim2.new(0.5, -6, 0, 64)
-    corner(r, 10)
-    stroke(r, T.Stroke, 1, 0.25)
+    corner(r, 12)
+    stroke(r, T.Stroke, 1, 0.22)
+
+    local sheen = Instance.new("UIGradient", r)
+    sheen.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(82, 70, 120)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(46, 40, 72)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(34, 30, 58))
+    })
+    sheen.Rotation = 18
+    sheen.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0.35),
+        NumberSequenceKeypoint.new(1, 0.55)
+    })
 
     local labelOffset = hasDesc and 54 or 18
     local labelWidth = hasDesc and -210 or -176
@@ -1731,14 +1772,13 @@ local ESPColorPresets = {
     {label = "Frostbite", value = Color3.fromRGB(210, 235, 255)},
 }
 
--- create tabs (avoid firing signals programmatically)
-tabButton("Aimbot", AimbotP)
+local _, activateFirst = tabButton("Aimbot", AimbotP)
 tabButton("ESP", ESPP)
 tabButton("Visuals", VisualP)
 tabButton("Misc", MiscP)
 tabButton("Config", ConfP)
--- make Aimbot page visible by default
-AimbotP.Visible = true
+
+if activateFirst then activateFirst() end
 
 -- Aimbot block
 mkToggle(AimbotP,"Enable Aimbot", AA.Enabled, function(v) AA.Enabled=v end, "Turns the aimbot feature on or off.")
