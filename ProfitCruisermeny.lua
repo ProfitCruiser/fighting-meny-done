@@ -302,33 +302,124 @@ PanelScale.Scale = 1
 Dock = Instance.new("ImageButton", App)
 Dock.Name = "AuroraDock"
 Dock.AutoButtonColor = false
-Dock.BackgroundColor3 = T.Accent
-Dock.BackgroundTransparency = 0.3
-Dock.Size = UDim2.fromOffset(46, 46)
-Dock.Position = UDim2.new(0, 24, 0.5, -23)
+Dock.BackgroundTransparency = 1
+Dock.Size = UDim2.fromOffset(60, 60)
+Dock.Position = UDim2.new(0, 24, 0.5, -30)
 Dock.Visible = false
 Dock.ZIndex = 120
 Dock.Active = true
 Dock.Selectable = false
-corner(Dock, 16)
-stroke(Dock, T.Stroke, 1, 0.35)
 
-local dockIcon = Instance.new("TextLabel", Dock)
+local dockShadow = Instance.new("Frame", Dock)
+dockShadow.Name = "Shadow"
+dockShadow.AnchorPoint = Vector2.new(0.5, 0.5)
+dockShadow.Position = UDim2.fromScale(0.5, 0.5)
+dockShadow.Size = UDim2.new(1, -2, 1, -2)
+dockShadow.BackgroundColor3 = Color3.fromRGB(6, 5, 12)
+dockShadow.BackgroundTransparency = 0.5
+corner(dockShadow, 22)
+
+local dockCore = Instance.new("Frame", dockShadow)
+dockCore.Name = "Core"
+dockCore.AnchorPoint = Vector2.new(0.5, 0.5)
+dockCore.Position = UDim2.fromScale(0.5, 0.5)
+dockCore.Size = UDim2.new(1, -6, 1, -6)
+dockCore.BackgroundColor3 = T.Accent
+dockCore.BackgroundTransparency = 0.18
+corner(dockCore, 20)
+
+local dockGradient = Instance.new("UIGradient", dockCore)
+dockGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, T.Neon),
+    ColorSequenceKeypoint.new(0.55, T.Accent),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(58, 48, 92))
+})
+dockGradient.Rotation = 28
+
+local dockRing = Instance.new("UIStroke", dockCore)
+dockRing.Thickness = 2.2
+dockRing.Transparency = 0.32
+dockRing.Color = T.Neon
+dockRing.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+local dockInner = Instance.new("Frame", dockCore)
+dockInner.Name = "Inner"
+dockInner.AnchorPoint = Vector2.new(0.5, 0.5)
+dockInner.Position = UDim2.fromScale(0.5, 0.5)
+dockInner.Size = UDim2.new(0.72, 0, 0.72, 0)
+dockInner.BackgroundColor3 = T.Panel
+dockInner.BackgroundTransparency = 0.05
+corner(dockInner, 18)
+stroke(dockInner, Color3.fromRGB(56, 48, 88), 1, 0.5)
+
+local dockBeam = Instance.new("Frame", dockCore)
+dockBeam.Name = "Beam"
+dockBeam.AnchorPoint = Vector2.new(0.5, 1)
+dockBeam.Position = UDim2.fromScale(0.5, 1)
+dockBeam.Size = UDim2.new(0.7, 0, 0, 8)
+dockBeam.BackgroundTransparency = 0.35
+dockBeam.BackgroundColor3 = T.Neon
+
+local dockBeamGradient = Instance.new("UIGradient", dockBeam)
+dockBeamGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(200, 170, 255)),
+    ColorSequenceKeypoint.new(0.5, T.Neon),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 170, 255))
+})
+dockBeamGradient.Rotation = 90
+
+local dockIcon = Instance.new("TextLabel", dockInner)
+dockIcon.Name = "Glyph"
 dockIcon.BackgroundTransparency = 1
 dockIcon.Size = UDim2.fromScale(1, 1)
 dockIcon.Font = Enum.Font.GothamBold
-dockIcon.Text = "☰"
+dockIcon.Text = "PC"
 dockIcon.TextColor3 = T.Text
-dockIcon.TextSize = 22
+dockIcon.TextSize = 20
 dockIcon.TextXAlignment = Enum.TextXAlignment.Center
 dockIcon.TextYAlignment = Enum.TextYAlignment.Center
+dockIcon.RichText = true
+
+local dockTag = Instance.new("TextLabel", dockCore)
+dockTag.Name = "Tag"
+dockTag.AnchorPoint = Vector2.new(0.5, 0)
+dockTag.Position = UDim2.new(0.5, 0, 0.7, -2)
+dockTag.Size = UDim2.new(0.9, 0, 0, 12)
+dockTag.BackgroundTransparency = 1
+dockTag.Font = Enum.Font.Gotham
+dockTag.Text = "ProfitCruiser"
+dockTag.TextColor3 = Color3.fromRGB(210, 200, 255)
+dockTag.TextTransparency = 0.25
+dockTag.TextSize = 10
+dockTag.TextXAlignment = Enum.TextXAlignment.Center
+dockTag.TextYAlignment = Enum.TextYAlignment.Center
 
 local draggingEnabled = true
 local dragState = nil
 local dockDragging = false
 local dockMoved = false
+local dockHover = false
 local rootTopLeft = nil
 local dockTopLeft = nil
+
+local quickDockTween = TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+
+local function pointerPosition(input)
+    if input then
+        if input.UserInputType == Enum.UserInputType.Touch then
+            local pos = input.Position
+            return Vector2.new(pos.X, pos.Y)
+        elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local mouse = UserInputService:GetMouseLocation()
+            return Vector2.new(mouse.X, mouse.Y)
+        elseif input.Position then
+            local pos = input.Position
+            return Vector2.new(pos.X, pos.Y)
+        end
+    end
+    local mouse = UserInputService:GetMouseLocation()
+    return Vector2.new(mouse.X, mouse.Y)
+end
 
 local function clampRootPosition(x, y)
     if not Root then return end
@@ -346,7 +437,7 @@ end
 local function clampDockPosition(x, y)
     if not Dock then return end
     local size = Dock.AbsoluteSize
-    if size.X <= 1 or size.Y <= 1 then size = Vector2.new(46, 46) end
+    if size.X <= 1 or size.Y <= 1 then size = Vector2.new(60, 60) end
     local vp = Camera.ViewportSize
     local maxX = math.max(8, vp.X - size.X - 8)
     local maxY = math.max(8, vp.Y - size.Y - 8)
@@ -393,45 +484,103 @@ local function togglePanel()
     Root.Visible = not Root.Visible
 end
 
+local function styleDock(open, hovering)
+    if not dockCore then return end
+    TweenService:Create(dockShadow, quickDockTween, {BackgroundTransparency = hovering and 0.38 or (open and 0.42 or 0.5)}):Play()
+    TweenService:Create(dockCore, quickDockTween, {BackgroundTransparency = hovering and 0.08 or (open and 0.12 or 0.18)}):Play()
+    TweenService:Create(dockRing, quickDockTween, {Transparency = hovering and 0.08 or (open and 0.18 or 0.32)}):Play()
+    TweenService:Create(dockTag, quickDockTween, {TextTransparency = open and 0.08 or 0.25}):Play()
+    TweenService:Create(dockGradient, quickDockTween, {Rotation = open and 70 or 28}):Play()
+    TweenService:Create(dockIcon, quickDockTween, {TextSize = open and 24 or 20}):Play()
+    dockIcon.Text = open and "<b>✕</b>" or "<b>PC</b>"
+    TweenService:Create(dockBeam, quickDockTween, {BackgroundTransparency = open and 1 or 0.35}):Play()
+end
+
 updateDockState = function()
     if not Dock then return end
     local open = Root and Root.Visible
     Dock.Visible = (allowReveal or open) and true or false
-    Dock.BackgroundColor3 = open and T.Neon or T.Accent
-    Dock.BackgroundTransparency = open and 0.15 or 0.3
-    dockIcon.Text = open and "✕" or "☰"
+    styleDock(open, dockHover)
 end
 
 local Top = Instance.new("Frame", Root)
 Top.Size=UDim2.new(1, -16, 0, 46); Top.Position=UDim2.new(0,8,0,8); Top.BackgroundColor3=T.Panel; corner(Top,12); stroke(Top,T.Stroke,1,0.45); pad(Top,10)
+Top.Active = true
+Top.Selectable = false
 
 local TitleLbl = Instance.new("TextLabel", Top)
 TitleLbl.Size=UDim2.new(0.6,0,1,0); TitleLbl.BackgroundTransparency=1; TitleLbl.TextXAlignment=Enum.TextXAlignment.Left
 TitleLbl.Text="ProfitCruiser — Aurora Panel"; TitleLbl.Font=Enum.Font.GothamBold; TitleLbl.TextSize=18; TitleLbl.TextColor3=T.Text
 
+local ControlHint = Instance.new("TextLabel", Top)
+ControlHint.Name = "ControlHint"
+ControlHint.AnchorPoint = Vector2.new(1, 0.5)
+ControlHint.Position = UDim2.new(1, -6, 0.5, 0)
+ControlHint.Size = UDim2.new(0.38, 0, 1, -4)
+ControlHint.BackgroundTransparency = 1
+ControlHint.Font = Enum.Font.Gotham
+ControlHint.TextSize = 13
+ControlHint.TextColor3 = T.Subtle
+ControlHint.TextXAlignment = Enum.TextXAlignment.Right
+ControlHint.TextYAlignment = Enum.TextYAlignment.Center
+ControlHint.TextWrapped = true
+ControlHint.RichText = true
+
+local function refreshControlHint()
+    local hasKeyboard = UserInputService.KeyboardEnabled
+    local hasTouch = UserInputService.TouchEnabled
+
+    if hasKeyboard and not hasTouch then
+        ControlHint.Text = "PC: Trykk <b>K</b> for å åpne/lukke menyen"
+    elseif hasTouch and not hasKeyboard then
+        ControlHint.Text = "Mobil/Tablet: Trykk på dokkikonet for å åpne/lukke"
+    else
+        ControlHint.Text = "PC: <b>K</b>  •  Mobil: Trykk dokkikonet"
+    end
+end
+
+refreshControlHint()
+UserInputService:GetPropertyChangedSignal("KeyboardEnabled"):Connect(refreshControlHint)
+UserInputService:GetPropertyChangedSignal("TouchEnabled"):Connect(refreshControlHint)
+UserInputService.LastInputTypeChanged:Connect(refreshControlHint)
+
 Top.InputBegan:Connect(function(input)
     if not draggingEnabled or not allowReveal then return end
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        local mouse = UserInputService:GetMouseLocation()
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        local pointer = pointerPosition(input)
         local origin = rootTopLeft or Root.AbsolutePosition
         dragState = {
             kind = "root",
-            offset = origin - mouse,
+            offset = origin - pointer,
+            input = input,
         }
     end
 end)
 
 Dock.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dockDragging = true
         dockMoved = false
-        local mouse = UserInputService:GetMouseLocation()
+        local pointer = pointerPosition(input)
         local origin = dockTopLeft or Dock.AbsolutePosition
         dragState = {
             kind = "dock",
-            offset = origin - mouse,
+            offset = origin - pointer,
+            input = input,
         }
+        dockHover = true
+        styleDock(Root and Root.Visible, true)
     end
+end)
+
+Dock.MouseEnter:Connect(function()
+    dockHover = true
+    styleDock(Root and Root.Visible, true)
+end)
+
+Dock.MouseLeave:Connect(function()
+    dockHover = false
+    styleDock(Root and Root.Visible, false)
 end)
 
 Dock.MouseButton1Up:Connect(function()
@@ -441,10 +590,25 @@ Dock.MouseButton1Up:Connect(function()
     dragState = nil
     dockDragging = false
     dockMoved = false
+    dockHover = Dock:IsMouseOver() and true or false
+    styleDock(Root and Root.Visible, dockHover)
+end)
+
+Dock.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        if not dockMoved then
+            togglePanel()
+        end
+        dragState = nil
+        dockDragging = false
+        dockMoved = false
+        dockHover = false
+        styleDock(Root and Root.Visible, dockHover)
+    end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         if dragState and dragState.kind == "dock" then
             dragState = nil
             dockDragging = false
@@ -456,12 +620,12 @@ end)
 
 RunService.RenderStepped:Connect(function()
     if not dragState then return end
-    local mouse = UserInputService:GetMouseLocation()
+    local pointer = pointerPosition(dragState.input)
     if dragState.kind == "root" then
-        clampRootPosition(mouse.X + dragState.offset.X, mouse.Y + dragState.offset.Y)
+        clampRootPosition(pointer.X + dragState.offset.X, pointer.Y + dragState.offset.Y)
     elseif dragState.kind == "dock" then
         local before = dockTopLeft or Dock.AbsolutePosition
-        clampDockPosition(mouse.X + dragState.offset.X, mouse.Y + dragState.offset.Y)
+        clampDockPosition(pointer.X + dragState.offset.X, pointer.Y + dragState.offset.Y)
         local after = dockTopLeft or Dock.AbsolutePosition
         if dockDragging and (after - before).Magnitude > 1 then
             dockMoved = true
