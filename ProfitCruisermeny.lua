@@ -17,8 +17,9 @@ local TextService       = game:GetService("TextService")
 local LocalPlayer = Players.LocalPlayer
 local Camera      = workspace.CurrentCamera
 
--- forward-declare Root so click handlers can access it before it's created
 local Root
+local Dock
+local updateDockState
 
 pcall(function()
     GuiService.AutoSelectGuiEnabled = false
@@ -27,7 +28,7 @@ end)
 
 --// Gate / links
 local KEY_CHECK_URL = "https://pastebin.com/raw/QgqAaumb"
-local GET_KEY_URL   = "https://pastebin.com/raw/QgqAaumb"
+local GET_KEY_URL   = "https://workink.net/24rQ/5lje1r1j"
 local DISCORD_URL   = "https://discord.gg/Pgn4NMWDH8"
 
 --// Theme
@@ -268,6 +269,8 @@ Confirm.MouseButton1Click:Connect(function()
             -- mark that reveal is allowed and show Root
             allowReveal = true
             if Root then Root.Visible = true end
+            if Dock then Dock.Visible = true end
+            if updateDockState then updateDockState() end
         end)
 
     else
@@ -296,6 +299,109 @@ Root.Visible=false
 local PanelScale = Instance.new("UIScale", Root)
 PanelScale.Scale = 1
 
+Dock = Instance.new("ImageButton", App)
+Dock.Name = "AuroraDock"
+Dock.AutoButtonColor = false
+Dock.BackgroundColor3 = T.Accent
+Dock.BackgroundTransparency = 0.3
+Dock.Size = UDim2.fromOffset(46, 46)
+Dock.Position = UDim2.new(0, 24, 0.5, -23)
+Dock.Visible = false
+Dock.ZIndex = 120
+Dock.Active = true
+Dock.Selectable = false
+corner(Dock, 16)
+stroke(Dock, T.Stroke, 1, 0.35)
+
+local dockIcon = Instance.new("TextLabel", Dock)
+dockIcon.BackgroundTransparency = 1
+dockIcon.Size = UDim2.fromScale(1, 1)
+dockIcon.Font = Enum.Font.GothamBold
+dockIcon.Text = "☰"
+dockIcon.TextColor3 = T.Text
+dockIcon.TextSize = 22
+dockIcon.TextXAlignment = Enum.TextXAlignment.Center
+dockIcon.TextYAlignment = Enum.TextYAlignment.Center
+
+local draggingEnabled = true
+local dragState = nil
+local dockDragging = false
+local dockMoved = false
+local rootTopLeft = nil
+local dockTopLeft = nil
+
+local function clampRootPosition(x, y)
+    if not Root then return end
+    local size = Root.AbsoluteSize
+    if size.X <= 2 or size.Y <= 2 then return end
+    local vp = Camera.ViewportSize
+    local maxX = math.max(8, vp.X - size.X - 8)
+    local maxY = math.max(8, vp.Y - size.Y - 8)
+    local clampedX = math.clamp(x, 8, maxX)
+    local clampedY = math.clamp(y, 8, maxY)
+    Root.Position = UDim2.new(0, clampedX + size.X * Root.AnchorPoint.X, 0, clampedY + size.Y * Root.AnchorPoint.Y)
+    rootTopLeft = Vector2.new(clampedX, clampedY)
+end
+
+local function clampDockPosition(x, y)
+    if not Dock then return end
+    local size = Dock.AbsoluteSize
+    if size.X <= 1 or size.Y <= 1 then size = Vector2.new(46, 46) end
+    local vp = Camera.ViewportSize
+    local maxX = math.max(8, vp.X - size.X - 8)
+    local maxY = math.max(8, vp.Y - size.Y - 8)
+    local clampedX = math.clamp(x, 8, maxX)
+    local clampedY = math.clamp(y, 8, maxY)
+    Dock.Position = UDim2.new(0, clampedX, 0, clampedY)
+    dockTopLeft = Vector2.new(clampedX, clampedY)
+end
+
+task.defer(function()
+    if Root then rootTopLeft = Root.AbsolutePosition end
+    if Dock then dockTopLeft = Dock.AbsolutePosition end
+end)
+
+Root:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+    rootTopLeft = Root.AbsolutePosition
+end)
+Root:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+    if rootTopLeft then
+        clampRootPosition(rootTopLeft.X, rootTopLeft.Y)
+    end
+end)
+
+Dock:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+    dockTopLeft = Dock.AbsolutePosition
+end)
+Dock:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+    if dockTopLeft then
+        clampDockPosition(dockTopLeft.X, dockTopLeft.Y)
+    end
+end)
+
+Camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+    if rootTopLeft then
+        clampRootPosition(rootTopLeft.X, rootTopLeft.Y)
+    end
+    if dockTopLeft then
+        clampDockPosition(dockTopLeft.X, dockTopLeft.Y)
+    end
+end)
+
+local function togglePanel()
+    if not allowReveal or not Root then return end
+    Root.Visible = not Root.Visible
+end
+
+updateDockState = function()
+    if not Dock then return end
+    local open = Root and Root.Visible
+    Dock.Visible = (allowReveal or open) and true or false
+    Dock.BackgroundColor3 = open and T.Neon or T.Accent
+    Dock.BackgroundTransparency = open and 0.15 or 0.3
+    dockIcon.Text = open and "✕" or "☰"
+end
+
 local Top = Instance.new("Frame", Root)
 Top.Size=UDim2.new(1, -16, 0, 46); Top.Position=UDim2.new(0,8,0,8); Top.BackgroundColor3=T.Panel; corner(Top,12); stroke(Top,T.Stroke,1,0.45); pad(Top,10)
 
@@ -303,18 +409,71 @@ local TitleLbl = Instance.new("TextLabel", Top)
 TitleLbl.Size=UDim2.new(0.6,0,1,0); TitleLbl.BackgroundTransparency=1; TitleLbl.TextXAlignment=Enum.TextXAlignment.Left
 TitleLbl.Text="ProfitCruiser — Aurora Panel"; TitleLbl.Font=Enum.Font.GothamBold; TitleLbl.TextSize=18; TitleLbl.TextColor3=T.Text
 
--- drag
-local draggingEnabled = true
-local dragging,rel=false,Vector2.zero
-Top.InputBegan:Connect(function(i) if draggingEnabled and i.UserInputType==Enum.UserInputType.MouseButton1 then dragging=true; rel=Root.AbsolutePosition-UserInputService:GetMouseLocation() end end)
-UserInputService.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then dragging=false end end)
-RunService.RenderStepped:Connect(function()
-    if dragging then
-        local vp=Camera.ViewportSize; local m=UserInputService:GetMouseLocation()
-        local nx=math.clamp(m.X+rel.X,8,vp.X-Root.AbsoluteSize.X-8); local ny=math.clamp(m.Y+rel.Y,8,vp.Y-Root.AbsoluteSize.Y-8)
-        Root.Position=UDim2.fromOffset(nx,ny)
+Top.InputBegan:Connect(function(input)
+    if not draggingEnabled or not allowReveal then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        local mouse = UserInputService:GetMouseLocation()
+        local origin = rootTopLeft or Root.AbsolutePosition
+        dragState = {
+            kind = "root",
+            offset = origin - mouse,
+        }
     end
 end)
+
+Dock.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dockDragging = true
+        dockMoved = false
+        local mouse = UserInputService:GetMouseLocation()
+        local origin = dockTopLeft or Dock.AbsolutePosition
+        dragState = {
+            kind = "dock",
+            offset = origin - mouse,
+        }
+    end
+end)
+
+Dock.MouseButton1Up:Connect(function()
+    if not dockMoved then
+        togglePanel()
+    end
+    dragState = nil
+    dockDragging = false
+    dockMoved = false
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if dragState and dragState.kind == "dock" then
+            dragState = nil
+            dockDragging = false
+        elseif dragState and dragState.kind == "root" then
+            dragState = nil
+        end
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if not dragState then return end
+    local mouse = UserInputService:GetMouseLocation()
+    if dragState.kind == "root" then
+        clampRootPosition(mouse.X + dragState.offset.X, mouse.Y + dragState.offset.Y)
+    elseif dragState.kind == "dock" then
+        local before = dockTopLeft or Dock.AbsolutePosition
+        clampDockPosition(mouse.X + dragState.offset.X, mouse.Y + dragState.offset.Y)
+        local after = dockTopLeft or Dock.AbsolutePosition
+        if dockDragging and (after - before).Magnitude > 1 then
+            dockMoved = true
+        end
+    end
+end)
+
+Root:GetPropertyChangedSignal("Visible"):Connect(function()
+    if updateDockState then updateDockState() end
+end)
+
+updateDockState()
 
 -- sidebar
 local Side = Instance.new("Frame", Root)
@@ -1395,12 +1554,10 @@ end)
 mkToggle(MiscP,"Press K to toggle UI", true, function() end, "Reminder that you can press K to hide or show the panel.")
 local dragToggle = mkToggle(MiscP,"Allow Dragging", true, function(v)
     draggingEnabled = v
-    if not v then dragging=false end
+    if not v and dragState and dragState.kind == "root" then
+        dragState = nil
+    end
 end, "Enables dragging the window around the screen.")
-local centerBtn = mkButton(MiscP, "Center Panel", function()
-    Root.Position = UDim2.fromScale(0.5,0.5)
-    dragging = false
-end, {buttonText="Center"}, "Recenters the panel on your screen.")
 local scaleSlider = mkSlider(MiscP,"UI Scale", 0.85, 1.25, PanelScale.Scale, function(x) PanelScale.Scale=x end,"x", "Changes the overall size of the menu UI.")
 
 local creditCard = Instance.new("Frame", MiscP)
@@ -1492,6 +1649,11 @@ end)
 -- Kill Menu logic
 local function killMenu()
     -- hide all UIs
+    allowReveal = false
+    dragState = nil
+    dockDragging = false
+    dockMoved = false
+    if Dock then Dock.Visible = false end
     if Root then Root.Visible = false end
     if Gate then Gate.Enabled = false end
     if SuccessGui then SuccessGui.Enabled = false end
@@ -1508,11 +1670,12 @@ local function killMenu()
         local ch = pl.Character
         if ch then local h = ch:FindFirstChild("_HL_"); if h then pcall(function() h:Destroy() end) end end
     end
+    if updateDockState then updateDockState() end
 end
 
 -- panic key (P) also kills the menu
 UserInputService.InputBegan:Connect(function(i)
-    if i.KeyCode==Enum.KeyCode.K then Root.Visible = not Root.Visible end
+    if i.KeyCode==Enum.KeyCode.K then togglePanel() end
     if i.KeyCode==Enum.KeyCode.P then killMenu() end
 end)
 
@@ -1547,4 +1710,5 @@ Gate:GetPropertyChangedSignal("Enabled"):Connect(function()
     if (not on) and allowReveal and Root then
         Root.Visible = true
     end
+    if updateDockState then updateDockState() end
 end)
