@@ -606,7 +606,7 @@ local function refreshControlHint()
     local hasTouch = UserInputService.TouchEnabled
 
     if hasKeyboard and not hasTouch then
-        ControlHint.Text = "PC: Trykk <b>K</b> for å åpne/lukke menyen"
+        ControlHint.Text = "PC: Press <b>K</b> to open/close the menu"
     elseif hasTouch and not hasKeyboard then
         ControlHint.Text = "Mobil/Tablet: Trykk på dokkikonet for å åpne/lukke"
     else
