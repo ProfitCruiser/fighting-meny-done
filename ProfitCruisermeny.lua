@@ -850,6 +850,27 @@ Tooltip.ClipsDescendants = false
 corner(Tooltip, 10)
 stroke(Tooltip, T.Stroke, 1, 0.2)
 
+-- Tving global rekkefølge
+Gate.ZIndexBehavior = Enum.ZIndexBehavior.Global
+App.ZIndexBehavior  = Enum.ZIndexBehavior.Global
+
+-- Sett DisplayOrder (Gate over App)
+Gate.DisplayOrder = 100
+App.DisplayOrder  = 50
+
+-- Overlays skal ikke blokkere input
+Dim.InputTransparent = true
+Dim.Active = false
+Dim.ZIndex = 0
+
+-- Kortet med knapper må ligge over
+Card.ZIndex = 10
+
+-- Tooltip skal heller ikke blokkere klikk
+Tooltip.InputTransparent = true
+Tooltip.Active = false
+Tooltip.ZIndex = 200
+
 local tooltipPad = Instance.new("UIPadding", Tooltip)
 tooltipPad.PaddingTop = UDim.new(0, 8)
 tooltipPad.PaddingBottom = UDim.new(0, 8)
